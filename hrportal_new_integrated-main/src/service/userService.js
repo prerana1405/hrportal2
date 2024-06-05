@@ -1,0 +1,125 @@
+import {findUser , 
+    signupUser,
+    findUserByEmail,
+    updateUserVerification,
+    updateUserDetails,
+    UpdateUserPassword,
+    findUserById
+} from '../models/user.models.js';
+import { sendVerificationMail } from '../utils/sendVerificationEmail.js';
+import validateUserData from '../utils/user.validation.js';
+import bcrypt from "bcrypt";
+
+const registerUser = async (userData) => {
+    const { fname, lname, email, empid, password, mobile_no } = userData;
+    const validationResult = validateUserData({ fname, lname, email, empid, password, mobile_no });
+    if (!validationResult.success) {
+        throw new Error(validationResult.message);
+    }
+    const existingUser = await findUserByEmail(email);
+    if (existingUser) {
+        throw new Error("Email is already assigned");
+    }
+    const newUser = await signupUser(fname, lname, email, empid, password, mobile_no);
+
+    if(newUser === null){
+        return newUser;
+    }else{
+        await sendVerificationMail(userData);
+        return newUser;
+    }
+
+};
+
+
+const verifyEmailToken = async (email_token, email) => {
+    try {
+        const user = await findUserByEmail(email);
+        if (user && user.email_token === email_token) {
+              await updateUserVerification(user.id);
+            return user;
+        } else {
+            return null;
+        }
+    } catch (error) {
+        console.error("Error while verifying email token:", error);
+        throw new Error("Failed to verify email token");
+    }
+};
+
+
+const loginUser = async (email, password) => {
+    if (!email || !password) {
+        throw new Error("Email and password are required");
+    }
+    const user = await findUser(email, password);
+    if (!user) {
+        throw new Error("User not found or invalid credentials");
+    }
+    if (!user.is_verified) {
+        throw new Error("User is not verified.");
+    }
+
+    const userToSend = {
+        fname: user.fname,
+        lname: user.lname,
+        email: user.email,
+        empid: user.empid,
+        mobile_no:user.mobile_no
+    };
+
+    return userToSend;
+};
+
+const updateProfile = async (id, fname, lname, mobile_no) => {
+     console.log(id, fname, lname, mobile_no);
+    if (!id || !fname || !lname || !mobile_no) {
+        throw new Error("All fields are required");
+    }
+    const updatedUser = await updateUserDetails(id, fname, lname, mobile_no);
+    if (!updatedUser) {
+        throw new Error("User not updated or invalid credentials");
+    }
+
+    const user = await findUserById(id);
+
+    const userToSend = {
+        fname: user.fname,
+        lname: user.lname,
+        email: user.email,
+        empid: user.empid,
+        mobile_no:user.mobile_no
+    };
+
+    return userToSend;
+}
+
+const updatePassword = async (id, oldPassword, newPassword) => {
+    console.log(id, oldPassword, newPassword);
+
+    if(!id || !oldPassword || !newPassword){
+        throw new Error("All fields are required");
+    }
+
+    const user = await findUserById(id);
+
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+
+    if (!isMatch) {
+        throw new Error("Old password does not match");
+    }
+    
+    const updateResult = await UpdateUserPassword(id, newPassword);
+    
+    return updateResult;
+
+}
+
+
+
+export { registerUser,
+         loginUser,
+         verifyEmailToken,
+         updateProfile,
+         updatePassword
+      };
