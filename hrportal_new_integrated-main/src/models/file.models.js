@@ -5,6 +5,10 @@ const fileSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  filename : {
+    type :String,
+    required: true
+  },
   empid: {
     type: String,
     required: true,

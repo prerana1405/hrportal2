@@ -6,9 +6,10 @@ import {findUser ,
     UpdateUserPassword,
     findUserById
 } from '../models/user.models.js';
-import { sendVerificationMail } from '../utils/sendVerificationEmail.js';
+import { sendMail } from '../utils/sendEmail.js';
 import validateUserData from '../utils/user.validation.js';
 import bcrypt from "bcrypt";
+
 
 const registerUser = async (userData) => {
     const { fname, lname, email, empid, password, mobile_no } = userData;
@@ -25,11 +26,32 @@ const registerUser = async (userData) => {
     if(newUser === null){
         return newUser;
     }else{
-        await sendVerificationMail(userData);
+        // await sendVerificationMail(userData);
         return newUser;
     }
 
 };
+
+
+const sendVerificationMail = async (email) => {
+    try {
+        const user = await findUserByEmail(email);
+        if (!user) {
+            throw new Error("User not found");
+        }
+        if(user.is_verified){
+            throw new Error("User is already verified");
+        }
+        await sendMail(user);
+    } catch (error) {
+        if (error.message === "User is already verified") {
+            console.error("Error: User is already verified");
+            throw new Error("User is already verified");
+        }
+        console.error("Error while sending verification email:", error);
+        throw new Error("Failed to send verification email");
+    }
+}
 
 
 const verifyEmailToken = async (email_token, email) => {
@@ -37,7 +59,16 @@ const verifyEmailToken = async (email_token, email) => {
         const user = await findUserByEmail(email);
         if (user && user.email_token === email_token) {
               await updateUserVerification(user.id);
-            return user;
+              const userToSend = {
+                id: user.id,
+                fname: user.fname,
+                lname: user.lname,
+                email: user.email,
+                empid: user.empid,
+                mobile_no:user.mobile_no,
+                is_verified: user.is_verified
+            };
+        return  userToSend;
         } else {
             return null;
         }
@@ -56,16 +87,18 @@ const loginUser = async (email, password) => {
     if (!user) {
         throw new Error("User not found or invalid credentials");
     }
-    if (!user.is_verified) {
-        throw new Error("User is not verified.");
-    }
+    // if (!user.is_verified) {
+    //     throw new Error("User is not verified.");
+    // }
 
     const userToSend = {
+        id: user.id,
         fname: user.fname,
         lname: user.lname,
         email: user.email,
         empid: user.empid,
-        mobile_no:user.mobile_no
+        mobile_no:user.mobile_no,
+        is_verified: user.is_verified
     };
 
     return userToSend;
@@ -84,6 +117,7 @@ const updateProfile = async (id, fname, lname, mobile_no) => {
     const user = await findUserById(id);
 
     const userToSend = {
+        id : user.id,
         fname: user.fname,
         lname: user.lname,
         email: user.email,
@@ -121,5 +155,6 @@ export { registerUser,
          loginUser,
          verifyEmailToken,
          updateProfile,
-         updatePassword
+         updatePassword,
+         sendVerificationMail
       };

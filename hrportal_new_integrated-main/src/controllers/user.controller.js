@@ -4,7 +4,9 @@ import { loginUser,
          registerUser,
          verifyEmailToken,
          updateProfile,
-         updatePassword } from '../service/userService.js';
+         updatePassword,
+         sendVerificationMail
+          } from '../service/userService.js';
 
 
 
@@ -32,17 +34,30 @@ const loginUserController = async (req, res) => {
     }
 };
 
+const sendVerificationMailController = async (req, res) => {
+    try {
+        const { email } = req.body;
+        console.log(email);
+        await sendVerificationMail(email);
+        return res.status(200).json(new ApiResponse(200, null, "Verification email sent successfully"));
+    } catch (error) {
+        console.error("Error while sending verification email:", error.message);
+        return res.status(500).json(new ApiResponse(500, null, error.message));
+    }
+
+};
 
 const verifyEmailTokenController = async (req, res) => {
     try {
         const { email_token, email } = req.body;
         const user = await verifyEmailToken(email_token, email);
         if (user) {
-            return res.status(200).json(new ApiResponse(200, { userDetail: user }, "Email verification successful"));
+            return res.status(200).json(new ApiResponse(200, { userDetails: user }, "Email verification successful"));
         } else {
             return res.status(400).json(new ApiResponse(400, null, "Invalid or expired email token"));
         }
     } catch (error) {
+       
         console.error("Error while verifying email token:", error.message);
         return res.status(500).json(new ApiResponse(500, null, error.message));
     }
@@ -81,5 +96,6 @@ registerUserController,
 loginUserController,
 verifyEmailTokenController,
  updateProfileController,
- updatePasswordController
+ updatePasswordController,
+ sendVerificationMailController
 }
