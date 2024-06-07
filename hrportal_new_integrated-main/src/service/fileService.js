@@ -46,50 +46,40 @@ export const getFilesFromCloudinary = async (empid) => {
   }
 };
 
-// //add profile image
-// export const uploadImageToCloudinary = async (image, empid) => {
-//   const imagename =  image.originalname;
-//  // console.log(filename);
-// if (!image || !empid) {
-//   throw new Error('Invalid parameters');
-// }
-// try {
-//  // console.log(`Uploading file for empid: ${empid}`);
-//   const uploadResult = await cloudinary.uploader.upload(image.path, {
-//     tags: [`empid_${empid}`], // Add empid tag
-//   });
-   
-//  // console.log('Upload result:', uploadResult);
-  
-//   const newImage = new File({
-//       path: uploadResult.secure_url,
-//       filename : imagename ,
-//       empid: empid,
-//       public_id: uploadResult.public_id,
-//       uploadedAt: new Date(),
-//     });
-//   await newImage.save();
-//   return newImage;
 
-// } catch (error) {
-//   console.error('Error uploading image to Cloudinary:', error);
-//   throw new Error('Failed to upload image');
-// }
-// };
+const extractPublicIdFromUrl = (url) => {
+  const parts = url.split('/');
+  const lastPart = parts[parts.length - 1];
+  const [publicId] = lastPart.split('.');
+  return publicId;
+};
 
-// export const getImageFromCloudinary = async (public_id) => {
-//   try {
-//     console.log(`Fetching image with public_id: ${public_id}`);
+// Delete file from Cloudinary and the database using the fileURL
+export const deleteFileFromCloudinary = async (fileUrl) => {
+  try {
+    const publicId = extractPublicIdFromUrl(fileUrl);
+    const result = await cloudinary.uploader.destroy(publicId);
+    if (result.result !== 'ok') {
+      throw new Error('Failed to delete File from Cloudinary');
+    }
+    await File.findOneAndDelete({ path: fileUrl });
+  } catch (error) {
+    console.error('Error deleting File from Cloudinary:', error);
+    throw new Error('Failed to delete file');
+  }
+};
+export const deleteFileFromDatabase= async (empId) => {
+  try {
+    const deletedImage = await File.findOneAndDelete({ empid: empId });
+    console.log(deletedImage);
 
-//     const result = await cloudinary.api.resource(public_id);
-//     if(!result){
-//       throw new Error('Image not found');
-//     }
-//     console.log('Fetch result:', result);
-    
-//     return result;
-//   } catch (error) {
-//     console.error('Error retrieving image from Cloudinary:', error);
-//     throw new Error('Failed to retrieve image');
-//   }
-// };
+    // if (deletedImage) {
+    //   throw new Error('Image not found in the database');
+    // }
+
+    return deletedImage;
+  } catch (error) {
+    console.error('Error deleting image from database:', error);
+    throw new Error('Failed to delete image');
+  }
+};

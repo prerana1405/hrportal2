@@ -1,5 +1,5 @@
-import { uploadFileToCloudinary, getFilesFromCloudinary } from '../service/fileService.js';
-//import { getImageFromCloudinary } from '../service/fileService.js';
+import { uploadFileToCloudinary, getFilesFromCloudinary , deleteFileFromCloudinary, deleteFileFromDatabase} from '../service/fileService.js';
+//import { deleteFileFromCloudinary, deleteFileFromDatabase } from '../services/fileService';
 
 export const uploadFile = async (req, res) => {
   const { empid } = req.body;
@@ -31,34 +31,25 @@ export const getFilesByEmpId = async (req, res) => {
     res.status(500).json({ message: 'Failed to retrieve files', error });
   }
 };
-//uploadImage
-// export const uploadImage = async (req, res) => {
-//   const { empid } = req.body;
-//   try {
-//     const image= req.file
-//    //console.log(image.filename);
-//     if (!image) {
-//       return res.status(400).json({ message: 'No image uploaded' });
-//     }
-
-//     const uploadResult = await uploadFileToCloudinary(image, empid);
-//     console.log(uploadResult);
-//     res.status(201).json({ message: 'Image uploaded successfully', image: uploadResult });
-//   } catch (error) {
-//     console.error('Error uploading file:', error);
-//     res.status(500).json({ message: 'Failed to upload image', error });
-//   }
-// };
 
 
-// export const getImage = async (req, res) => {
-//   const { public_id } = req.params;
+export const deleteFile = async (req, res) => {
+  const {  empId,  fileUrl } = req.query;
+// console.log(empId,+" "+public_id);
+  if (!empId || !fileUrl) {
+    return res.status(400).json({ message: 'file ID and public ID are required' });
+  }
 
-//   try {
-//     const imageData = await getImageFromCloudinary(public_id);
-//     res.status(200).send(imageData);
-//   } catch (error) {
-//     console.error('Error retrieving image:', error);
-//     res.status(500).json({ message: 'Failed to retrieve image', error });
-//   }
-// };
+  try {
+    // Delete the image from Cloudinary
+    await deleteFileFromCloudinary(fileUrl);
+
+    // Delete the image from the database
+    await deleteFileFromDatabase (empId);
+
+    res.status(200).json({ message: 'file deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting image:', error);
+    res.status(500).json({ message: 'Failed to delete file', error: error.message });
+  }
+};
