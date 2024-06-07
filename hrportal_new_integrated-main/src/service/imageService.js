@@ -1,5 +1,6 @@
 import Image from  '../models/image.models.js';
 import cloudinary from '../utils/cloudinary.js';
+import axios from 'axios';
 //add profile image
 export const uploadImageToCloudinary = async (image, empid) => {
     const imagename =  image.originalname;
@@ -22,45 +23,102 @@ export const uploadImageToCloudinary = async (image, empid) => {
         public_id: uploadResult.public_id,
         uploadedAt: new Date(),
       });
-    // const newImage = new Image({
-    //   public_id:uploadResult.public_id,
-    //   url:uploadResult.secure_url,
-    //   imagename:imagenames ,
-    //   imageData:uploadResult.Buffer,
-    // });
-    // await newImage.save();
-    return newImage;
+   await newImage.save();
+    // return {
+    //   imageUrl: uploadResult.secure_url,
+    //   public_id: uploadResult.public_id
+    // };
+
+    return newImage
   
   } catch (error) {
     console.error('Error uploading image to Cloudinary:', error);
     throw new Error('Failed to upload image');
   }
   };
-  
-  // export const getImageFromCloudinary = async (public_id) => {
-  //   try {
-  //     console.log(`Fetching image with public_id: ${public_id}`);
-  
-  //     const result = await cloudinary.api.resource(public_id);
-  //     if(!result){
-  //       throw new Error('Image not found');
-  //     }
-  //     console.log('Fetch result:', result);
-      
-  //     return result;
-  //   } catch (error) {
-  //     console.error('Error retrieving image from Cloudinary:', error);
-  //     throw new Error('Failed to retrieve image');
-  //   }
-  // };
-  import axios from 'axios';
-  export const getImageFromCloudinary = async (publicId) => {
+  export const getImageFromCloudinary = async (imageUrl) => {
     try {
-      const imageUrl = cloudinary.url(publicId, { secure: true });
+      // Fetch the image from Cloudinary
       const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
-      return Buffer.from(response.data, 'binary');
+  
+      // Optional: Process the image if needed (e.g., resize or change format)
+      // const processedImage = await sharp(response.data).resize(200).toBuffer();
+  
+      // Return the image data
+      return response.data;
     } catch (error) {
       console.error('Error fetching image from Cloudinary:', error);
       throw new Error('Failed to fetch image');
     }
   };
+  
+  // export const deleteImageFromCloudinary = async (public_id) => {
+  //   try {
+  //     const result = await cloudinary.uploader.destroy(public_id);
+  //     if (result.result !== 'ok') {
+  //       throw new Error('Failed to delete image from Cloudinary');
+  //     }
+  //   } catch (error) {
+  //     console.error('Error deleting image from Cloudinary:', error);
+  //     throw new Error('Failed to delete image');
+  //   }
+  // };
+
+  //const cloudinary = require('cloudinary').v2;
+//const Image = require('./imageModel');
+
+// Helper function to extract public ID from URL
+const extractPublicIdFromUrl = (url) => {
+  const parts = url.split('/');
+  const lastPart = parts[parts.length - 1];
+  const [publicId] = lastPart.split('.');
+  return publicId;
+};
+
+// Delete image from Cloudinary and the database using the image URL
+export const deleteImageFromCloudinary = async (imageUrl) => {
+  try {
+    const publicId = extractPublicIdFromUrl(imageUrl);
+    const result = await cloudinary.uploader.destroy(publicId);
+    if (result.result !== 'ok') {
+      throw new Error('Failed to delete image from Cloudinary');
+    }
+    await Image.findOneAndDelete({ path: imageUrl });
+  } catch (error) {
+    console.error('Error deleting image from Cloudinary:', error);
+    throw new Error('Failed to delete image');
+  }
+};
+
+  
+  // export const deleteImageFromDatabase = async (empId) => {
+  //   try {
+  //     //const deletedImage = await Image.findByempIdAndDelete(empId);
+  //     const deletedImage = await Image.findOneAndDelete({ empid: empId });
+  //     console.log(deletedImage);
+  //     if (deletedImage) {
+  //       throw new Error('Image not found in the database');
+  //     }
+  //     return deletedImage;
+  //   } catch (error) {
+  //     console.error('Error deleting image from database:', error);
+  //     throw new Error('Failed to delete image');
+  //   }
+  // };
+  export const deleteImageFromDatabase = async (empId) => {
+    try {
+      const deletedImage = await Image.findOneAndDelete({ empid: empId });
+      console.log(deletedImage);
+  
+      // if (deletedImage) {
+      //   throw new Error('Image not found in the database');
+      // }
+  
+      return deletedImage;
+    } catch (error) {
+      console.error('Error deleting image from database:', error);
+      throw new Error('Failed to delete image');
+    }
+  };
+
+  

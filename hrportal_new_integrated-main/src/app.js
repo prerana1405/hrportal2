@@ -18,11 +18,11 @@ app.use(cookieParser())
 import userRouter from './routes/user.router.js';
 import fileRoutes from './routes/fileRoute.js';
 import imageRoutes from './routes/imageRoute.js';
-
+import multimageRoute from './routes/multimageRoute.js';
 //route decleration
 app.use("/api/v1/users",userRouter);
 app.use('/api/v1/file', fileRoutes);
 app.use('/api/v1/image', imageRoutes);
-
+//app.use('/api/v1/image', multimageRoute);
 
 export default app;
